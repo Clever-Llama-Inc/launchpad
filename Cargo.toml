@@ -31,4 +31,4 @@ tokio = { version = "1.38", features = ["full"] }
 
 [features]
 default = ["mq"]
-mq = ["lapin"]
+mq = ["dep:lapin"]
