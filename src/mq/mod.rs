@@ -43,37 +43,30 @@ pub async fn create_channel<C: CreateChannelConfig>(config: C) -> Result<Channel
 
 #[derive(Debug, Constructor)]
 pub struct Queue<'a> {
-    name: &'a str,
+    pub name: &'a str,
 }
 
 #[derive(Debug)]
 pub struct Exchange<'a> {
-    name: &'a str,
-    declare: bool,
-}
-
-impl<'a> Default for Exchange<'a> {
-    fn default() -> Self {
-        Self {
-            name: "",
-            declare: false,
-        }
-    }
+    pub name: &'a str,
+    pub declare: bool,
+    pub routing_key: &'a str,
 }
 
 impl<'a> Exchange<'a> {
     #[allow(dead_code)] // future
-    fn new(name: &'a str) -> Exchange {
+    pub fn new(name: &'a str) -> Exchange {
         Exchange {
             name: name,
             declare: true,
+            routing_key: ""
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Envelope<M> {
-    message: M,
+    pub message: M,
 }
 
 impl<'a, M> Envelope<M>

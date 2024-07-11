@@ -1,5 +1,4 @@
 use super::*;
-use derive_more::Constructor;
 use lapin::{
     options::{BasicAckOptions, BasicConsumeOptions, BasicNackOptions, QueueDeclareOptions},
     types::FieldTable,
@@ -11,7 +10,6 @@ use tracing::{debug, warn};
 
 type ConsumerResult<T> = Result<T, MqError>;
 
-#[derive(Constructor)]
 pub struct Consumer<'a> {
     name: &'a str,
     channel: Channel,

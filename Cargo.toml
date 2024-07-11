@@ -27,7 +27,9 @@ sqlx = { version = "0.7", features = [
 ], optional = true }
 
 [dev-dependencies]
+anyhow = "1.0"
 tokio = { version = "1.38", features = ["full"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
 
 [features]
 default = ["mq"]

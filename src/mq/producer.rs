@@ -1,6 +1,8 @@
 use super::*;
 use lapin::{
-    options::{BasicPublishOptions, ExchangeDeclareOptions, QueueDeclareOptions},
+    options::{
+        BasicPublishOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions
+    },
     types::FieldTable,
     BasicProperties, Channel,
 };
@@ -12,7 +14,7 @@ type ProducerResult<T> = Result<T, MqError>;
 pub struct Producer<'a> {
     channel: Channel,
     queue: Queue<'a>,
-    exchange: Exchange<'a>,
+    exchange: Option<Exchange<'a>>,
 }
 
 impl Producer<'_> {
@@ -22,8 +24,8 @@ impl Producer<'_> {
         let _result = self
             .channel
             .basic_publish(
-                self.exchange.name,
-                self.queue.name,
+                self.exchange.as_ref().map(|e| e.name).unwrap_or(""),
+                self.exchange.as_ref().map(|e| e.routing_key).unwrap_or(self.queue.name),
                 BasicPublishOptions::default(),
                 payload.as_bytes(),
                 BasicProperties::default(),
@@ -35,7 +37,7 @@ impl Producer<'_> {
 
     pub async fn create<'a>(
         channel: Channel,
-        exchange: Exchange<'a>,
+        exchange: Option<Exchange<'a>>,
         queue: Queue<'a>,
     ) -> ProducerResult<Producer<'a>> {
         channel
@@ -46,15 +48,27 @@ impl Producer<'_> {
             )
             .await?;
 
-        if exchange.declare {
-            channel
-                .exchange_declare(
-                    exchange.name,
-                    lapin::ExchangeKind::Direct,
-                    ExchangeDeclareOptions::default(),
-                    FieldTable::default(),
-                )
-                .await?;
+        if let Some(exchange) = &exchange {
+            if exchange.declare {
+                channel
+                    .exchange_declare(
+                        exchange.name,
+                        lapin::ExchangeKind::Direct,
+                        ExchangeDeclareOptions::default(),
+                        FieldTable::default(),
+                    )
+                    .await?;
+
+                channel
+                    .queue_bind(
+                        &queue.name,
+                        &exchange.name,
+                        &exchange.routing_key,
+                        QueueBindOptions::default(),
+                        FieldTable::default(),
+                    )
+                    .await?;
+            }
         }
 
         Ok(Producer {
