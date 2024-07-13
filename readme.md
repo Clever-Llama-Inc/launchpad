@@ -12,3 +12,4 @@ A library of framework utilities for rust-based backend systems based on the fol
 
 - "default": enables everything
 - "mq": enables rabbitmq
+- "task": enables a simple background 'task' thread.
