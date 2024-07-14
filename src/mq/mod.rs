@@ -1,11 +1,14 @@
 pub mod consumer;
 pub mod producer;
+pub mod setup;
 
 use std::env;
 
-use derive_more::Constructor;
+use consumer::Consumer;
+use derive_more::{Constructor, From};
 use lapin::{Channel, Connection, ConnectionProperties};
-use serde::{Deserialize, Serialize};
+use producer::Producer;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -41,27 +44,30 @@ pub async fn create_channel<C: CreateChannelConfig>(config: C) -> Result<Channel
     Ok(channel)
 }
 
-#[derive(Debug, Constructor)]
+pub trait ChannelOps {
+    fn create_producer<'a>(self, exchange: Exchange<'a>) -> Producer<'a>;
+    fn create_consumer<'a>(self, consumer_tag: &'a str, queue: Queue<'a>) -> Consumer<'a>;
+}
+
+impl ChannelOps for Channel {
+    fn create_producer<'a>(self, exchange: Exchange<'a>) -> Producer<'a> {
+        Producer::new(self, exchange)
+    }
+
+    fn create_consumer<'a>(self, consumer_tag: &'a str, queue: Queue<'a>) -> Consumer<'a> {
+        Consumer::new(self, consumer_tag, queue)
+    }
+}
+
+#[derive(Debug, Constructor, From)]
 pub struct Queue<'a> {
     pub name: &'a str,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Constructor, From)]
 pub struct Exchange<'a> {
     pub name: &'a str,
-    pub declare: bool,
-    pub routing_key: &'a str,
-}
-
-impl<'a> Exchange<'a> {
-    #[allow(dead_code)] // future
-    pub fn new(name: &'a str) -> Exchange {
-        Exchange {
-            name: name,
-            declare: true,
-            routing_key: ""
-        }
-    }
+    pub routing_key: Option<&'a str>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -72,7 +78,7 @@ pub struct Envelope<M> {
 impl<'a, M> Envelope<M>
 where
     M: Serialize,
-    M: Deserialize<'a>,
+    M: DeserializeOwned,
 {
     pub fn new(message: M) -> Self {
         Envelope { message: message }

@@ -1,6 +1,6 @@
 use super::*;
 use lapin::{
-    options::{BasicAckOptions, BasicConsumeOptions, BasicNackOptions, QueueDeclareOptions},
+    options::{BasicAckOptions, BasicConsumeOptions, BasicNackOptions},
     types::FieldTable,
     Channel,
 };
@@ -10,9 +10,10 @@ use tracing::{debug, warn};
 
 type ConsumerResult<T> = Result<T, MqError>;
 
+#[derive(Constructor)]
 pub struct Consumer<'a> {
-    name: &'a str,
     channel: Channel,
+    consumer_tag: &'a str,
     queue: Queue<'a>,
 }
 
@@ -30,33 +31,13 @@ pub trait Processor {
 }
 
 impl Consumer<'_> {
-    pub async fn create<'a>(
-        name: &'a str,
-        channel: Channel,
-        queue: Queue<'a>,
-    ) -> ConsumerResult<Consumer<'a>> {
-        channel
-            .queue_declare(
-                queue.name,
-                QueueDeclareOptions::default(),
-                FieldTable::default(),
-            )
-            .await?;
-
-        Ok(Consumer {
-            name,
-            channel,
-            queue,
-        })
-    }
-
     pub async fn consume<P: Processor>(&self, processor: &mut P) -> ConsumerResult<()> {
         use futures::stream::StreamExt;
         let mut consumer = self
             .channel
             .basic_consume(
                 self.queue.name,
-                self.name,
+                self.consumer_tag,
                 BasicConsumeOptions::default(),
                 FieldTable::default(),
             )
