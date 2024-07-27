@@ -4,9 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dev-dependencies]
+itertools = "0.13.0"
 launchpad-derive = { path = "../derive", features = ["pgsqlx"]}
 sqlx =  "0.8.0"
 uuid = { version = "1.10.0", features = ["v4"] }
 
 [dependencies]
-sqlx = { version = "0.8.0", features = ["postgres", "uuid"] }
+sqlx = { version = "0.8.0", features = ["postgres", "uuid", "runtime-tokio"] }
+tokio = { version = "1.39.2", features = ["macros", "rt-multi-thread"] }

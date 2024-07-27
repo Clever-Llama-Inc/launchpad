@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+utilities ={ path = "../utilities" }
 convert_case = "0.6.0"
 darling = "0.20"
 derive_more = "0.99.18"

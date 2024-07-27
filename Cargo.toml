@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+utilities = { path = "utilities" }
 launchpad-derive = { path = "derive", default-features = false, optional = true}
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.8", features = ["v4", "serde"] }
@@ -40,4 +41,4 @@ task = [ "dep:tokio" ]
 pgsqlx = [ "launchpad-derive/pgsqlx", "dep:sqlx" ]
 
 [workspace]
-members = ["derive", "derive-tests"]
+members = ["derive", "derive-tests", "utilities"]

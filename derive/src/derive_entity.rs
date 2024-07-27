@@ -1,12 +1,12 @@
-use std::{cell::LazyCell, clone, collections::HashMap, hash::Hash, ops::Index};
+use std::collections::HashMap;
 
 use convert_case::{Case, Casing};
-use darling::{FromAttributes, FromDeriveInput, FromField};
+use darling::{FromDeriveInput, FromField};
 use derive_more::Constructor;
 use itertools::Itertools;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{Data, DeriveInput, Fields, Ident, Type};
+use syn::{parse_quote, Data, DeriveInput, Fields, Ident, Type};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -29,7 +29,7 @@ pub(crate) struct DeriveEntity {
     pub entity: Ident,
     pub snake_name: Option<Ident>,
     pub table_name: String,
-    pub columns: Vec<FieldColumn>,
+    pub _columns: Vec<FieldColumn>,
     pub keys: Vec<Key>,
 }
 
@@ -63,13 +63,15 @@ impl TryFrom<DeriveInput> for DeriveEntity {
     type Error = DeriveEntityError;
 
     fn try_from(derive_input: DeriveInput) -> Result<Self, Self::Error> {
-        let args = args::DeriveInputArgs::from_derive_input(&derive_input)?;
-        let fields = if let Data::Struct(struct_data) = &derive_input.data {
-            Ok(&struct_data.fields)
+        let ent_struct = if let Data::Struct(ent_struct) = &derive_input.data {
+            Ok(ent_struct)
         } else {
             Err(DeriveEntityError::StructRequired)
         }?;
 
+        let args = args::DeriveInputArgs::from_derive_input(&derive_input)?;
+
+        let fields = &ent_struct.fields;
         let field_columns = field_columns(fields)?;
 
         let pks = fields
@@ -99,7 +101,7 @@ impl TryFrom<DeriveInput> for DeriveEntity {
             .cloned()
             .collect_vec();
 
-        let keys = index(pks)
+        let keys = utilities::iterable::index(pks)
             .into_iter()
             .map(|(k, v)| {
                 let components = v.iter().map(|(fc, _)| fc.clone()).collect_vec();
@@ -109,7 +111,7 @@ impl TryFrom<DeriveInput> for DeriveEntity {
             })
             .collect_vec();
 
-        let columns = field_columns.into_iter().map(|(k, v)| v).collect_vec();
+        let columns = field_columns.into_iter().map(|(_, v)| v).collect_vec();
 
         let table_name = args
             .table_name
@@ -153,17 +155,6 @@ fn field_columns(fields: &Fields) -> Result<HashMap<Ident, FieldColumn>, DeriveE
         })
 }
 
-fn index<K: Hash + Eq + Clone, V>(items: Vec<(K, V)>) -> HashMap<K, Vec<V>> {
-    use itertools::Itertools;
-
-    items
-        .into_iter()
-        .into_group_map_by(|(k, _)| k.clone())
-        .into_iter()
-        .map(|(k, v)| (k, v.into_iter().map(|(_, vv)| vv).collect_vec()))
-        .collect()
-}
-
 impl TryFrom<DeriveEntity> for TokenStream {
     type Error = DeriveEntityError;
 
@@ -183,7 +174,7 @@ impl TryFrom<DeriveEntity> for TokenStream {
 }
 
 struct KeyFn {
-    ent: Ident,
+    _ent: Ident,
     fn_name: Ident,
     fn_rtn: proc_macro2::TokenStream,
     fn_args: Vec<proc_macro2::TokenStream>,
@@ -210,12 +201,27 @@ impl KeyFn {
             }
         };
 
+        fn map_type(ty: &Type) -> Type {
+            match ty {
+                Type::Path(p)
+                    if p.path
+                        .get_ident()
+                        .map(Ident::to_string)
+                        .is_some_and(|s| s.ends_with("String")) =>
+                {
+                    let str_ty: Type = parse_quote!(str);
+                    str_ty
+                }
+                _ => ty.clone(),
+            }
+        }
+
         let fn_args = key
             .components
             .iter()
             .map(|c| {
                 let name = &c.field_name;
-                let ty = &c.field_type;
+                let ty = map_type(&c.field_type);
                 quote! {
                     #name: &#ty
                 }
@@ -223,7 +229,7 @@ impl KeyFn {
             .collect_vec();
 
         Self {
-            ent,
+            _ent: ent,
             fn_name,
             fn_rtn,
             fn_args,
@@ -284,16 +290,25 @@ fn pgpool_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> 
                 ..
             } = KeyFn::new(entity, key);
 
-            let where_clause = key.components.iter().enumerate().map(|(i, c)| {
-                format!("{} = ${}", c.column_name, i)
-            }).join(" and ");
+            let where_clause = key
+                .components
+                .iter()
+                .enumerate()
+                .map(|(i, c)| format!("{} = ${}", c.column_name, i + 1))
+                .join(" and ");
+
             let query = format!("select * from {} where {}", entity.table_name, where_clause);
-            let binds = key.components.iter().map(|c| {
-                let f = &c.field_name;
-                quote! {
-                    .bind(&#f)
-                }
-            }).collect_vec();
+
+            let binds = key
+                .components
+                .iter()
+                .map(|c| {
+                    let f = &c.field_name;
+                    quote! {
+                        .bind(&#f)
+                    }
+                })
+                .collect_vec();
 
             let body = if key.unique {
                 quote! {
@@ -332,7 +347,7 @@ fn pgpool_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> 
     })
 }
 
-fn tx_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
+fn tx_impl(_entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
     Ok(quote! {})
 }
 
@@ -367,13 +382,4 @@ pub(super) mod args {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::index;
-
-    #[test]
-    fn test_index() {
-        let items = vec![("a", 1), ("b", 2), ("a", 3)];
-        let ix = index(items);
-        println!("{ix:?}");
-    }
-}
+mod tests {}
