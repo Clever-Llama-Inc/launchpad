@@ -1,0 +1,12 @@
+[package]
+name = "derive-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dev-dependencies]
+launchpad-derive = { path = "../derive"}
+sqlx =  "0.8.0"
+uuid = { version = "1.10.0", features = ["v4"] }
+
+[dependencies]
+sqlx = { version = "0.8.0", features = ["postgres", "uuid"] }

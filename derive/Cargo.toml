@@ -1,0 +1,17 @@
+[package]
+name = "launchpad-derive"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+convert_case = "0.6.0"
+darling = "0.20"
+derive_more = "0.99.18"
+itertools = "0.13.0"
+proc-macro2 = "1.0"
+quote = "1.0.36"
+syn = { version = "2.0", features = ["full"] }
+thiserror = "1.0.63"
+
+[lib]
+proc-macro = true
