@@ -193,7 +193,7 @@ impl KeyFn {
     fn new(entity: &DeriveEntity, key: &Key) -> Self {
         let ent = entity.entity.clone();
         let snake_ent = entity.entity_snake_name();
-        
+
         let fn_name = if key.unique {
             format_ident!("find_{}_by_{}", snake_ent, key.name)
         } else {
@@ -226,18 +226,34 @@ impl KeyFn {
             ent,
             fn_name,
             fn_rtn,
-            fn_args
+            fn_args,
         }
     }
 }
 
+struct EntityImpl {
+    trait_name: Ident,
+}
+
+impl EntityImpl {
+    fn new(entity: &DeriveEntity) -> Self {
+        let trait_name = format_ident!("{}Repo", entity.entity);
+        Self { trait_name }
+    }
+}
+
 fn repo_trait(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
-    let trait_name = format_ident!("{}Repo", entity.entity);
+    let EntityImpl { trait_name } = EntityImpl::new(entity);
     let key_fns = entity
         .keys
         .iter()
         .map(|key| {
-            let KeyFn { fn_name, fn_rtn, fn_args, .. } = KeyFn::new(entity, key);
+            let KeyFn {
+                fn_name,
+                fn_rtn,
+                fn_args,
+                ..
+            } = KeyFn::new(entity, key);
 
             quote! {
                 async fn #fn_name(&self, #(#fn_args), *) -> #fn_rtn;
@@ -255,7 +271,65 @@ fn repo_trait(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
 }
 
 fn pgpool_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
-    Ok(quote! {})
+    let EntityImpl { trait_name } = EntityImpl::new(entity);
+
+    let key_fns = entity
+        .keys
+        .iter()
+        .map(|key| {
+            let KeyFn {
+                fn_name,
+                fn_rtn,
+                fn_args,
+                ..
+            } = KeyFn::new(entity, key);
+
+            let where_clause = key.components.iter().enumerate().map(|(i, c)| {
+                format!("{} = ${}", c.column_name, i)
+            }).join(" and ");
+            let query = format!("select * from {} where {}", entity.table_name, where_clause);
+            let binds = key.components.iter().map(|c| {
+                let f = &c.field_name;
+                quote! {
+                    .bind(&#f)
+                }
+            }).collect_vec();
+
+            let body = if key.unique {
+                quote! {
+                    sqlx::query_as(#query)
+                    #(
+                        #binds
+                    )*
+                    .fetch_optional(self)
+                    .await
+                }
+            } else {
+                quote! {
+                    sqlx::query_as(#query)
+                    #(
+                        #binds
+                    )*
+                    .fetch_all(self)
+                    .await
+                }
+            };
+
+            quote! {
+                async fn #fn_name(&self, #(#fn_args), *) -> #fn_rtn {
+                    #body
+                }
+            }
+        })
+        .collect_vec();
+
+    Ok(quote! {
+        impl #trait_name for sqlx::PgPool {
+            #(
+                #key_fns
+            )*
+        }
+    })
 }
 
 fn tx_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {

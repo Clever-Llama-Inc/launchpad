@@ -1,10 +1,11 @@
 #[cfg(test)]
 mod tests {
     use launchpad_derive::Entity;
+    use sqlx::prelude::FromRow;
     use uuid::Uuid;
 
     #[allow(unused)]
-    #[derive(Entity, Default)]
+    #[derive(Entity, Default, FromRow)]
     #[entity(name = my_entity)]
     struct MyEntity {
         #[key(name = "id", unique)]
@@ -26,6 +27,8 @@ mod tests {
     #[test]
     fn usage() {
         let _entity = MyEntity::default();
+        
         // impl MyEntityRepo for () {}
     }
+    
 }
