@@ -7,15 +7,18 @@ mod tests {
     #[derive(Entity, Default)]
     #[entity(name = my_entity)]
     struct MyEntity {
-        #[key(name = "id")]
+        #[key(name = "id", unique)]
         #[column(name = "id")]
         entity_id: Uuid,
 
-        #[key(name = "name_version")]
+        #[key(name = "name_version", unique)]
         name: String,
 
-        #[key(name = "name_version")]
+        #[key(name = "name_version", unique)]
         version: i32,
+
+        #[key(name = "color")]
+        color: String,
 
         description: String,
     }

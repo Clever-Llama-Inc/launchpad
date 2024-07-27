@@ -48,6 +48,7 @@ impl DeriveEntity {
 #[derive(Debug, Default, Constructor)]
 pub(crate) struct Key {
     pub name: String,
+    pub unique: bool,
     pub components: Vec<FieldColumn>,
 }
 
@@ -86,12 +87,13 @@ impl TryFrom<DeriveInput> for DeriveEntity {
                 }
 
                 let f_ident = f.ident.clone().ok_or(DeriveEntityError::MissingKeyName)?;
-                let key = args::Key::from_attributes(&f.attrs).map_err(DeriveEntityError::from)?;
+                let key = args::Key::from_field(&f).map_err(DeriveEntityError::from)?;
                 let field_column = field_columns[&f_ident].clone();
                 let key_name = key.name.unwrap_or_else(|| f_ident.to_string());
-                Ok(Some((key_name, field_column)))
+                let key_unique = key.unique.unwrap_or(false);
+                Ok(Some((key_name, (field_column, key_unique))))
             })
-            .collect::<Result<Vec<Option<(String, FieldColumn)>>, DeriveEntityError>>()?
+            .collect::<Result<Vec<Option<(String, (FieldColumn, bool))>>, DeriveEntityError>>()?
             .iter()
             .flatten()
             .cloned()
@@ -99,7 +101,12 @@ impl TryFrom<DeriveInput> for DeriveEntity {
 
         let keys = index(pks)
             .into_iter()
-            .map(|(k, v)| Key::new(k, v))
+            .map(|(k, v)| {
+                let components = v.iter().map(|(fc, _)| fc.clone()).collect_vec();
+                // assumption: only one key in the named key needs to be marked unique
+                let unique = v.iter().any(|(_, u)| *u);
+                Key::new(k, unique, components)
+            })
             .collect_vec();
 
         let columns = field_columns.into_iter().map(|(k, v)| v).collect_vec();
@@ -175,38 +182,69 @@ impl TryFrom<DeriveEntity> for TokenStream {
     }
 }
 
+struct KeyFn {
+    ent: Ident,
+    fn_name: Ident,
+    fn_rtn: proc_macro2::TokenStream,
+    fn_args: Vec<proc_macro2::TokenStream>,
+}
+
+impl KeyFn {
+    fn new(entity: &DeriveEntity, key: &Key) -> Self {
+        let ent = entity.entity.clone();
+        let snake_ent = entity.entity_snake_name();
+        
+        let fn_name = if key.unique {
+            format_ident!("find_{}_by_{}", snake_ent, key.name)
+        } else {
+            format_ident!("list_{}_by_{}", snake_ent, key.name)
+        };
+
+        let fn_rtn = if key.unique {
+            quote! {
+                Result<Option<#ent>, sqlx::Error>
+            }
+        } else {
+            quote! {
+                Result<Vec<#ent>, sqlx::Error>
+            }
+        };
+
+        let fn_args = key
+            .components
+            .iter()
+            .map(|c| {
+                let name = &c.field_name;
+                let ty = &c.field_type;
+                quote! {
+                    #name: &#ty
+                }
+            })
+            .collect_vec();
+
+        Self {
+            ent,
+            fn_name,
+            fn_rtn,
+            fn_args
+        }
+    }
+}
+
 fn repo_trait(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
     let trait_name = format_ident!("{}Repo", entity.entity);
     let key_fns = entity
         .keys
         .iter()
         .map(|key| {
-            let ent = &entity.entity;
-            let snake_entity = entity.entity_snake_name();
-            let fn_name = format_ident!("find_{}_by_{}", snake_entity, key.name);
+            let KeyFn { fn_name, fn_rtn, fn_args, .. } = KeyFn::new(entity, key);
 
-            let fn_args = key
-                .components
-                .iter()
-                .map(|c| {
-                    let name = &c.field_name;
-                    let ty = &c.field_type;
-                    quote! {
-                        #name: &#ty
-                    }
-                })
-                .collect_vec();
             quote! {
-                async fn #fn_name(&self, #(#fn_args), *) -> Result<Option<#ent>, sqlx::Error>;
-
+                async fn #fn_name(&self, #(#fn_args), *) -> #fn_rtn;
             }
         })
         .collect_vec();
 
-    println!(
-        "{:?}",
-        key_fns.iter().map(TokenStream::to_string).collect_vec()
-    );
     Ok(quote! {
         pub trait #trait_name {
             #(
@@ -225,7 +263,7 @@ fn tx_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
 }
 
 pub(super) mod args {
-    use darling::{FromAttributes, FromDeriveInput, FromField};
+    use darling::{FromDeriveInput, FromField};
     use syn::Ident;
 
     #[derive(Debug, FromDeriveInput)]
@@ -238,11 +276,13 @@ pub(super) mod args {
         pub table_name: Option<String>,
     }
 
-    #[derive(Debug, FromAttributes)]
+    #[derive(Debug, FromField)]
     #[darling(attributes(key))]
     pub(crate) struct Key {
-        // #[darling(default)]
         pub name: Option<String>,
+
+        #[darling(default)]
+        pub unique: Option<bool>,
     }
 
     #[derive(Debug, FromField)]

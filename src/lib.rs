@@ -5,3 +5,6 @@ pub mod mq;
 
 #[cfg(feature = "task")]
 pub mod task;
+
+#[cfg(feature = "pgsqlx")]
+pub use launchpad_derive::Entity;

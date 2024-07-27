@@ -15,3 +15,7 @@ thiserror = "1.0.63"
 
 [lib]
 proc-macro = true
+
+[features]
+default = ["pgsqlx"]
+pgsqlx = []

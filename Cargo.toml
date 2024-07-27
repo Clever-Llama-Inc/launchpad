@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-launchpad-derive = { path = "derive"}
+launchpad-derive = { path = "derive", default-features = false, optional = true}
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.8", features = ["v4", "serde"] }
 thiserror = "1.0"
@@ -34,9 +34,10 @@ tokio = { version = "1.38", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "chrono"] }
 
 [features]
-default = ["mq", "task"]
+default = ["mq", "task", "pgsqlx"]
 mq = ["dep:lapin"]
 task = [ "dep:tokio" ]
+pgsqlx = [ "launchpad-derive/pgsqlx", "dep:sqlx" ]
 
 [workspace]
 members = ["derive", "derive-tests"]

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dev-dependencies]
-launchpad-derive = { path = "../derive"}
+launchpad-derive = { path = "../derive", features = ["pgsqlx"]}
 sqlx =  "0.8.0"
 uuid = { version = "1.10.0", features = ["v4"] }
 
