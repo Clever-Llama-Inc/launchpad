@@ -160,7 +160,10 @@ impl TryFrom<DeriveEntity> for TokenStream {
 
     fn try_from(entity: DeriveEntity) -> Result<Self, Self::Error> {
         let repo_trait = repo_trait(&entity)?;
-        let pgpool_impl = pgpool_impl(&entity)?;
+
+        let pgpool_ty: Type = parse_quote!(sqlx::Pool<sqlx::Postgres>);
+        let pgpool_impl = pg_impl(&entity, pgpool_ty)?;
+
         let tx_impl = tx_impl(&entity)?;
 
         Ok(quote! {
@@ -276,7 +279,7 @@ fn repo_trait(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
     })
 }
 
-fn pgpool_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
+fn pg_impl(entity: &DeriveEntity, impl_ty: Type) -> Result<TokenStream, DeriveEntityError> {
     let EntityImpl { trait_name } = EntityImpl::new(entity);
 
     let key_fns = entity
@@ -339,7 +342,7 @@ fn pgpool_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> 
         .collect_vec();
 
     Ok(quote! {
-        impl #trait_name for sqlx::PgPool {
+        impl #trait_name for #impl_ty {
             #(
                 #key_fns
             )*
@@ -347,9 +350,77 @@ fn pgpool_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> 
     })
 }
 
-fn tx_impl(_entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
-    Ok(quote! {})
-}
+fn tx_impl(entity: &DeriveEntity) -> Result<TokenStream, DeriveEntityError> {
+    let EntityImpl { trait_name } = EntityImpl::new(entity);
+
+    let key_fns = entity
+        .keys
+        .iter()
+        .map(|key| {
+            let KeyFn {
+                fn_name,
+                fn_rtn,
+                fn_args,
+                ..
+            } = KeyFn::new(entity, key);
+
+            let where_clause = key
+                .components
+                .iter()
+                .enumerate()
+                .map(|(i, c)| format!("{} = ${}", c.column_name, i + 1))
+                .join(" and ");
+
+            let query = format!("select * from {} where {}", entity.table_name, where_clause);
+
+            let binds = key
+                .components
+                .iter()
+                .map(|c| {
+                    let f = &c.field_name;
+                    quote! {
+                        .bind(&#f)
+                    }
+                })
+                .collect_vec();
+
+            let body = if key.unique {
+                quote! {
+                    let mut tx = self.lock().await;
+                    sqlx::query_as(#query)
+                    #(
+                        #binds
+                    )*
+                    .fetch_optional(&mut **tx)
+                    .await
+                }
+            } else {
+                quote! {
+                    let mut tx = self.lock().await;
+                    sqlx::query_as(#query)
+                    #(
+                        #binds
+                    )*
+                    .fetch_all(&mut **tx)
+                    .await
+                }
+            };
+
+            quote! {
+                async fn #fn_name(&self, #(#fn_args), *) -> #fn_rtn {
+                    #body
+                }
+            }
+        })
+        .collect_vec();
+
+    Ok(quote! {
+        impl #trait_name for tokio::sync::Mutex<sqlx::Transaction<'_, sqlx::Postgres>> {
+            #(
+                #key_fns
+            )*
+        }
+    })}
 
 pub(super) mod args {
     use darling::{FromDeriveInput, FromField};

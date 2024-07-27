@@ -5,6 +5,7 @@ mod tests {
     use itertools::Itertools;
     use launchpad_derive::Entity;
     use sqlx::{prelude::FromRow, PgPool};
+    use tokio::sync::Mutex;
     use uuid::Uuid;
 
     #[allow(unused)]
@@ -69,6 +70,8 @@ mod tests {
                     description: "bar red".into(),
                 },
             ];
+
+            let tx = Mutex::new(pg_pool.begin().await?);
             
             for entity in &data {
                 insert_my_entity(&pg_pool, entity).await?;
@@ -80,6 +83,9 @@ mod tests {
 
             let e2 = pg_pool.list_my_entity_by_color("red").await?;
             assert_eq!(e2.len(), 2);
+
+            let e3 = tx.list_my_entity_by_color("red").await?;
+            assert_eq!(e3.len(), 2);
 
             Ok(())
         }
