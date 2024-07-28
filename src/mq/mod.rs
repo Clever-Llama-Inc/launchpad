@@ -45,12 +45,12 @@ pub async fn create_channel<C: CreateChannelConfig>(config: C) -> Result<Channel
 }
 
 pub trait ChannelOps {
-    fn create_producer<'a>(self, exchange: Exchange<'a>) -> Producer<'a>;
+    fn create_producer(self, exchange: Exchange<'_>) -> Producer<'_>;
     fn create_consumer<'a>(self, consumer_tag: &'a str, queue: Queue<'a>) -> Consumer<'a>;
 }
 
 impl ChannelOps for Channel {
-    fn create_producer<'a>(self, exchange: Exchange<'a>) -> Producer<'a> {
+    fn create_producer(self, exchange: Exchange<'_>) -> Producer<'_> {
         Producer::new(self, exchange)
     }
 
@@ -75,12 +75,12 @@ pub struct Envelope<M> {
     pub message: M,
 }
 
-impl<'a, M> Envelope<M>
+impl<M> Envelope<M>
 where
     M: Serialize,
     M: DeserializeOwned,
 {
     pub fn new(message: M) -> Self {
-        Envelope { message: message }
+        Envelope { message }
     }
 }

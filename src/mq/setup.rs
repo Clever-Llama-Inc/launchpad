@@ -147,15 +147,15 @@ pub trait TopologyOps {
         topology: Topology<Name>,
     ) -> Result<(), MqError> {
         for queue in topology.queues.iter() {
-            self.with_queue(&queue).await?
+            self.with_queue(queue).await?
         }
 
         for exchange in topology.exchanges.iter() {
-            self.with_exchange(&exchange).await?
+            self.with_exchange(exchange).await?
         }
 
         for binding in topology.bindings.iter() {
-            self.with_binding(&binding).await?
+            self.with_binding(binding).await?
         }
 
         Ok(())

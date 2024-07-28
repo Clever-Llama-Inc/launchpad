@@ -20,7 +20,7 @@ futures = "0.3"
 # optional dependencies by feature
 lapin = { version = "2.3", optional = true }
 rocket = { version = "0.5", features = ["json"], optional = true }
-sqlx = { version = "0.8", features = [
+sqlx = { version = "0.7", features = [
     "runtime-tokio",
     "postgres",
     "uuid",
@@ -40,5 +40,5 @@ mq = ["dep:lapin"]
 task = [ "dep:tokio" ]
 pgsqlx = [ "launchpad-derive/pgsqlx", "dep:sqlx" ]
 
-[workspace]
-members = ["derive", "derive-tests", "utilities"]
+# [workspace]
+# members = ["derive", "derive-tests", "utilities"]

@@ -89,7 +89,7 @@ impl TryFrom<DeriveInput> for DeriveEntity {
                 }
 
                 let f_ident = f.ident.clone().ok_or(DeriveEntityError::MissingKeyName)?;
-                let key = args::Key::from_field(&f).map_err(DeriveEntityError::from)?;
+                let key = args::Key::from_field(f).map_err(DeriveEntityError::from)?;
                 let field_column = field_columns[&f_ident].clone();
                 let key_name = key.name.unwrap_or_else(|| f_ident.to_string());
                 let key_unique = key.unique.unwrap_or(false);
@@ -111,7 +111,7 @@ impl TryFrom<DeriveInput> for DeriveEntity {
             })
             .collect_vec();
 
-        let columns = field_columns.into_iter().map(|(_, v)| v).collect_vec();
+        let columns = field_columns.into_values().collect_vec();
 
         let table_name = args
             .table_name
@@ -134,11 +134,11 @@ fn field_columns(fields: &Fields) -> Result<HashMap<Ident, FieldColumn>, DeriveE
             let field_name = field
                 .ident
                 .as_ref()
-                .ok_or_else(|| DeriveEntityError::FieldRequired)?;
+                .ok_or(DeriveEntityError::FieldRequired)?;
 
             let field_type = field.ty.clone();
 
-            let column = args::Column::from_field(&field).ok();
+            let column = args::Column::from_field(field).ok();
 
             let field_column = FieldColumn::new(
                 field_name.clone(),
