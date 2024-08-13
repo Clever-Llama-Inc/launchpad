@@ -8,5 +8,8 @@ pub mod mq;
 #[cfg(feature = "task")]
 pub mod task;
 
+#[cfg(feature = "tracing")]
+pub mod tracing;
+
 #[cfg(feature = "pgsqlx")]
 pub use launchpad_derive::Entity;

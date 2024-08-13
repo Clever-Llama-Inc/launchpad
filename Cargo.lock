@@ -806,17 +806,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive-tests"
-version = "0.1.0"
-dependencies = [
- "itertools 0.13.0",
- "launchpad-derive",
- "sqlx",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "derive_more"
 version = "0.99.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -827,6 +816,28 @@ dependencies = [
  "quote",
  "rustc_version",
  "syn",
+]
+
+[[package]]
+name = "derive_more"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
+ "convert_case 0.6.0",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "unicode-xid",
 ]
 
 [[package]]
@@ -1559,7 +1570,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "derive_more",
+ "derive_more 1.0.0",
  "futures",
  "lapin",
  "launchpad-derive",
@@ -1581,7 +1592,7 @@ version = "0.1.0"
 dependencies = [
  "convert_case 0.6.0",
  "darling",
- "derive_more",
+ "derive_more 0.99.18",
  "itertools 0.13.0",
  "proc-macro2",
  "quote",

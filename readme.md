@@ -3,7 +3,7 @@
 A library of framework utilities for rust-based backend systems based on the following frameworks:
 
 - Rocket (HTTP)
-- SQLx (DB)
+- SQLx + pgSQL (DB)
 - Lapin (RabbitMQ)
 - Tracing
 - Tokio
@@ -13,3 +13,4 @@ A library of framework utilities for rust-based backend systems based on the fol
 - "default": enables everything
 - "mq": enables rabbitmq
 - "task": enables a simple background 'task' thread.
+- "tracing": basic subscriber setup
