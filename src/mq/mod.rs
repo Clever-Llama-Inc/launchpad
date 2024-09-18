@@ -59,12 +59,12 @@ impl ChannelOps for Channel {
     }
 }
 
-#[derive(Debug, Constructor, From)]
+#[derive(Debug, Constructor, From, Clone, Copy)]
 pub struct Queue<'a> {
     pub name: &'a str,
 }
 
-#[derive(Debug, Constructor, From)]
+#[derive(Debug, Constructor, From, Clone, Copy)]
 pub struct Exchange<'a> {
     pub name: &'a str,
     pub routing_key: Option<&'a str>,

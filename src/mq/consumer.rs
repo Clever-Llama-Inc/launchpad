@@ -10,7 +10,7 @@ use tracing::{debug, warn};
 
 type ConsumerResult<T> = Result<T, MqError>;
 
-#[derive(Constructor)]
+#[derive(Constructor, Clone)]
 pub struct Consumer<'a> {
     channel: Channel,
     consumer_tag: &'a str,

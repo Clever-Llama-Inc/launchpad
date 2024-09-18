@@ -4,7 +4,7 @@ use serde::Serialize;
 
 type ProducerResult<T> = Result<T, MqError>;
 
-#[derive(Debug, Constructor)]
+#[derive(Debug, Clone, Constructor)]
 pub struct Producer<'a> {
     channel: Channel,
     exchange: Exchange<'a>,
