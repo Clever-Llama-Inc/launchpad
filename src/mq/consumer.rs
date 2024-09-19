@@ -89,7 +89,6 @@ impl Consumer<'_> {
         let stream = consumer
             .inspect_err(|e| warn!("error consuming: {:?}", e))
             .take_while(|d| future::ready(d.is_ok()))
-            .map_err(MqError::from)
             .map(|d| d.unwrap())
             .then(|d| async move {
                 match serde_json::from_slice::<Envelope<Item>>(&d.data).map_err(MqError::from) {
