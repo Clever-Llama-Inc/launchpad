@@ -75,7 +75,7 @@ async fn consumer() -> anyhow::Result<()> {
 
 async fn producer() -> anyhow::Result<()> {
     let channel = create_channel(CreateChannelConfigFromEnv).await?;
-    let producer = channel.create_producer(Exchange::new("example-exchange", None));
+    let producer = channel.create_producer(Exchange::new("example-exchange"));
     let messages = ["a", "b", "c"]
         .into_iter()
         .map(String::from)
@@ -83,7 +83,7 @@ async fn producer() -> anyhow::Result<()> {
 
     for message in messages {
         info!("sending message: {:?}", message);
-        producer.publish(message).await?;
+        producer.publish(message, None::<&str>).await?;
     }
     info!("producing complete");
     Ok(())

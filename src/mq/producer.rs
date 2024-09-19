@@ -11,14 +11,15 @@ pub struct Producer<'a> {
 }
 
 impl Producer<'_> {
-    pub async fn publish<M: Serialize>(&self, envelope: Envelope<M>) -> ProducerResult<()> {
+    pub async fn publish<M: Serialize, R: Into<String>>(&self, envelope: Envelope<M>, routing_key: Option<R>) -> ProducerResult<()> {
         let payload = serde_json::to_string(&envelope)?;
+        let routing_key = routing_key.map(|r| r.into()).unwrap_or("".into());
 
         self
             .channel
             .basic_publish(
                 self.exchange.name,
-                self.exchange.routing_key.as_ref().map(|e| *e).unwrap_or(""),
+                &routing_key,
                 BasicPublishOptions::default(),
                 payload.as_bytes(),
                 BasicProperties::default(),

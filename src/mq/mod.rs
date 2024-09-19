@@ -67,7 +67,6 @@ pub struct Queue<'a> {
 #[derive(Debug, Constructor, From, Clone, Copy)]
 pub struct Exchange<'a> {
     pub name: &'a str,
-    pub routing_key: Option<&'a str>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
