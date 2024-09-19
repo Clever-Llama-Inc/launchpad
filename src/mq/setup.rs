@@ -1,9 +1,9 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::BTreeMap};
 
 use derive_more::Constructor;
 use lapin::{
     options::{ExchangeBindOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions},
-    types::FieldTable,
+    types::{AMQPValue, FieldTable},
     Channel,
 };
 use serde::{Deserialize, Serialize};
@@ -68,9 +68,19 @@ impl<Name: Into<String>> TopologyBuilder<Name> for RefCell<Topology<Name>> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum QueueOptions {
+    Persistence(bool),
+    AutoExpire(u32),
+    MessageTTL(u32),
+    DeadLetterExchange(String),
+    DeadLetterRoutingKey(String)
+}
+
 #[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct Queue<Name: Into<String>> {
     name: Name,
+    options: Vec<QueueOptions>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Constructor)]
@@ -168,10 +178,26 @@ impl TopologyOps for Channel {
         queue: &Queue<Name>,
     ) -> Result<(), MqError> {
         let queue_name: String = queue.name.clone().into();
+        let mut options = QueueDeclareOptions::default();
+
+        if queue.options.iter().find(|o| matches!(o, QueueOptions::Persistence(true))).is_some() {
+            options.durable = true
+        }
+
+        let arguments: FieldTable = queue.options.iter().flat_map(|o| {
+            match o {
+                QueueOptions::AutoExpire(ms) => Some(("x-expires".into(), AMQPValue::LongUInt(*ms))),
+                QueueOptions::MessageTTL(ms) => Some(("x-message-ttl".into(), AMQPValue::LongUInt(*ms))),
+                QueueOptions::DeadLetterExchange(dlx) => Some(("x-dead-letter-exchange".into(), AMQPValue::ShortString(dlx.clone().into()))),
+                QueueOptions::DeadLetterRoutingKey(dlx_rk) => Some(("x-dead-letter-routing-key".into(), AMQPValue::ShortString(dlx_rk.clone().into()))),
+                _ => None
+            }
+        }).collect::<BTreeMap<_, _>>().into();
+
         self.queue_declare(
             &queue_name,
-            QueueDeclareOptions::default(),
-            FieldTable::default(),
+            options,
+            arguments,
         )
         .await?;
         Ok(())
@@ -310,7 +336,7 @@ mod tests {
     #[tokio::test]
     async fn usage() -> anyhow::Result<()> {
         let topology = Topology::builder()
-            .with_queue(Queue::new("test.queue"))
+            .with_queue(Queue::new("test.queue", Vec::default()))
             .with_exchange(Exchange::builder("test.exchange").build())
             .with_binding(Binding::ToQueue {
                 src_exchange_name: "test.exchange",

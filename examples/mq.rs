@@ -42,7 +42,7 @@ async fn topology() -> anyhow::Result<()> {
     use launchpad::mq::setup::{Binding, Exchange, Queue, Topology, TopologyBuilder, TopologyOps};
 
     let topology = Topology::builder()
-        .with_queue(Queue::new("example-queue"))
+        .with_queue(Queue::new("example-queue", Vec::default()))
         .with_exchange(
             Exchange::builder("example-exchange")
                 .with_kind(ExchangeType::Topic)
