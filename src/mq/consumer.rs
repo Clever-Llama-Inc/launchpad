@@ -13,7 +13,7 @@ use thiserror::Error;
 use tracing::{debug, warn};
 
 pub type ConsumerResult<T> = Result<T, MqError>;
-pub type ConsumerStream<Item> = Pin<Box<dyn Stream<Item = Item>>>;
+pub type ConsumerStream<Item> = Pin<Box<dyn Stream<Item = Item> + Send>>;
 
 #[derive(Constructor, Clone)]
 pub struct Consumer<'a> {
@@ -74,7 +74,7 @@ impl Consumer<'_> {
 
     pub async fn stream<Item>(&self) -> ConsumerResult<ConsumerStream<Item>>
     where
-        Item: DeserializeOwned,
+        Item: DeserializeOwned + Send,
     {
         let consumer = self
             .channel

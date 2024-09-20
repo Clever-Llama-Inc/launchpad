@@ -27,6 +27,7 @@ pub trait CreateChannelConfig {
     fn rabbitmq_url(&self) -> Result<String, MqError>;
 }
 
+#[derive(Clone, Copy)]
 pub struct CreateChannelConfigFromEnv;
 
 impl CreateChannelConfig for CreateChannelConfigFromEnv {
@@ -50,7 +51,7 @@ pub trait ChannelOps {
 }
 
 impl ChannelOps for Channel {
-    fn create_producer(self, exchange: Exchange<'_>) -> Producer<'_> {
+    fn create_producer<'a>(self, exchange: Exchange<'a>) -> Producer<'a> {
         Producer::new(self, exchange)
     }
 
