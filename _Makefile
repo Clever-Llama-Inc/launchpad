@@ -1,0 +1,53 @@
+ROOT_DIR=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+DATA_DIR=$(ROOT_DIR)/.data
+
+run-all: run-db run-mq run-grafana run-loki run-prometheus
+
+run-db:
+	@docker run -d \
+		--name postgres \
+		--rm \
+		-e POSTGRES_PASSWORD=postgres \
+		-e PGDATA=/var/lib/postgresql/data/pgdata \
+		-v $(DATA_DIR):/var/lib/postgresql/data \
+		-p 5432:5432 \
+		pgvector/pgvector:pg16
+
+run-mq:
+	@docker run -d \
+		--name rabbitmq \
+		--rm \
+		-p 5672:5672 \
+		-p 15672:15672 \
+		rabbitmq:3.13-management	
+
+run-grafana:
+	@docker run -d \
+		--name grafana \
+		--rm \
+		--add-host=host.docker.internal:host-gateway \
+		-p 3200:3000 \
+		grafana/grafana-enterprise
+
+run-loki:
+	@docker run -d \
+		--name loki \
+		-v $(ROOT_DIR):/mnt/config \
+		-p 3100:3100 \
+		grafana/loki:3.0.0 -config.file=/mnt/config/loki-config.yaml
+
+run-prometheus:
+	@docker run -d \
+		--name prometheus \
+		-p 9090:9090 \
+		prom/prometheus
+
+
+setup-mq:
+	curl -u guest:guest -X PUT http://localhost:15672/api/vhosts/lorekeeper
+
+db-env-pg:
+	@echo "export PGHOST=localhost; export PGUSER=postgres; export PGPASSWORD=postgres; export PGDATABASE=postgres"
+
+db-env-lk:
+	@echo "export PGHOST=localhost; export PGUSER=lorekeeper; export PGPASSWORD=lorekeeper; export PGDATABASE=lorekeeper; export DATABASE_URL=postgres://lorekeeper:lorekeeper@localhost/lorekeeper"

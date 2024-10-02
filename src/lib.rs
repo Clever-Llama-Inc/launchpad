@@ -5,9 +5,6 @@ pub use utilities;
 #[cfg(feature = "mq")]
 pub mod mq;
 
-#[cfg(feature = "task")]
-pub mod task;
-
 #[cfg(feature = "tracing")]
 pub mod tracing;
 

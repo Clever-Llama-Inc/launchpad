@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use rocket::request::{self, FromRequest, Request};
 
 pub struct Authorization<Principle, Permissions> {

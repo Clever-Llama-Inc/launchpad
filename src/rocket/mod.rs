@@ -1,2 +1,2 @@
 mod auth;
-mod metrics;
+pub mod metrics;

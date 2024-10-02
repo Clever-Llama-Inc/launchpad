@@ -42,11 +42,10 @@ tokio = { version = "1.38", features = ["full"] }
 
 [features]
 # default = ["full"]
-full = ["mq", "task", "pgsqlx", "tracing", "rocket"]
+full = ["mq", "pgsqlx", "tracing", "rocket"]
 mq = ["dep:lapin"]
-task = ["dep:tokio"]
 pgsqlx = ["launchpad-derive/pgsqlx", "dep:sqlx"]
-tracing = ["dep:tracing-subscriber", "dep:tracing-loki", "dep:hostname"]
+tracing = ["dep:tracing-subscriber", "dep:tracing-loki", "dep:hostname", "dep:tokio"]
 rocket = ["dep:rocket"]
 
 # [workspace]
