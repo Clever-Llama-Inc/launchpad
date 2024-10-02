@@ -11,5 +11,8 @@ pub mod task;
 #[cfg(feature = "tracing")]
 pub mod tracing;
 
+#[cfg(feature = "rocket")]
+pub mod rocket;
+
 #[cfg(feature = "pgsqlx")]
 pub use launchpad_derive::Entity;

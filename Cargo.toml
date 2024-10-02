@@ -32,18 +32,22 @@ sqlx = { version = "0.8.0", features = [
     "chrono",
     "json",
 ], optional = true }
-tokio = { version = "1.38", features = ["full"], optional = true }
+tokio = { version = "1.40", features = ["full"], optional = true }
+tracing-loki = { version = "0.2", optional = true }
+hostname = {version = "0.4", optional = true }
 
 [dev-dependencies]
 anyhow = "1.0"
 tokio = { version = "1.38", features = ["full"] }
 
 [features]
-default = ["mq", "task", "pgsqlx", "tracing"]
+# default = ["full"]
+full = ["mq", "task", "pgsqlx", "tracing", "rocket"]
 mq = ["dep:lapin"]
 task = ["dep:tokio"]
 pgsqlx = ["launchpad-derive/pgsqlx", "dep:sqlx"]
-tracing = ["dep:tracing-subscriber"]
+tracing = ["dep:tracing-subscriber", "dep:tracing-loki", "dep:hostname"]
+rocket = ["dep:rocket"]
 
 # [workspace]
 # members = ["derive", "derive-tests", "utilities"]
