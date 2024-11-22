@@ -7,16 +7,16 @@ edition = "2021"
 utilities = { path = "utilities" }
 
 # required for everything
-thiserror = "1.0"
+thiserror = "2.0"
 tracing = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-derive_more = { version = "1.0.0", features = ["full"] }
+derive_more = { version = "1.0", features = ["full"] }
 futures = "0.3"
 
 launchpad-derive = { path = "derive", default-features = false, optional = true }
 chrono = { version = "0.4", features = ["serde"] }
-uuid = { version = "1.8", features = ["v4", "serde"] }
+uuid = { version = "1.11", features = ["v4", "serde"] }
 tracing-subscriber = { version = "0.3", features = [
     "env-filter",
     "chrono",
@@ -32,9 +32,9 @@ sqlx = { version = "0.8.0", features = [
     "chrono",
     "json",
 ], optional = true }
-tokio = { version = "1.40", features = ["full"], optional = true }
+tokio = { version = "1.41", features = ["full"], optional = true }
 tracing-loki = { version = "0.2", optional = true }
-hostname = {version = "0.4", optional = true }
+hostname = { version = "0.4", optional = true }
 
 [dev-dependencies]
 anyhow = "1.0"
@@ -45,7 +45,12 @@ tokio = { version = "1.38", features = ["full"] }
 full = ["mq", "pgsqlx", "tracing", "rocket"]
 mq = ["dep:lapin"]
 pgsqlx = ["launchpad-derive/pgsqlx", "dep:sqlx"]
-tracing = ["dep:tracing-subscriber", "dep:tracing-loki", "dep:hostname", "dep:tokio"]
+tracing = [
+    "dep:tracing-subscriber",
+    "dep:tracing-loki",
+    "dep:hostname",
+    "dep:tokio",
+]
 rocket = ["dep:rocket"]
 
 # [workspace]
