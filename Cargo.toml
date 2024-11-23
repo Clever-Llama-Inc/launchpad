@@ -12,6 +12,7 @@ tracing = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 derive_more = { version = "1.0", features = ["full"] }
+derive-new = "0.7"
 futures = "0.3"
 
 launchpad-derive = { path = "derive", default-features = false, optional = true }
