@@ -34,7 +34,7 @@ pub fn configure(loki: Option<LokiOptions>) -> Result<(), Box<dyn Error>> {
             builder = builder.extra_field(&k, &v)?;
         }
 
-        let (layer, task) = tracing_loki::builder()
+        let (layer, task) = builder
             .build_url(Url::parse(&loki.url)?)?;
 
         tokio::spawn(task);
