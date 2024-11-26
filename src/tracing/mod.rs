@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, error::Error, process};
 
-use tracing_loki::url::Url;
+use tracing_loki::{url::Url, BackgroundTask};
 use tracing_subscriber::{
     fmt,
     layer::{Layer, SubscriberExt},
@@ -18,8 +18,14 @@ pub struct LokiOptions {
     fields: BTreeMap<String, String>,
 }
 
-pub fn configure(loki: Option<LokiOptions>) -> Result<(), Box<dyn Error>> {
+#[derive(derive_new::new)]
+pub struct Logging {
+    pub loki_task: Option<BackgroundTask>,
+}
+
+pub fn configure(loki: Option<LokiOptions>) -> Result<Logging, Box<dyn Error>> {
     let log_layer = Some(fmt::layer()).with_filter(EnvFilter::from_default_env());
+    let mut loki_task = None;
 
     let loki_layer = if let Some(loki) = loki {
         let mut builder = tracing_loki::builder()
@@ -37,7 +43,7 @@ pub fn configure(loki: Option<LokiOptions>) -> Result<(), Box<dyn Error>> {
         let (layer, task) = builder
             .build_url(Url::parse(&loki.url)?)?;
 
-        tokio::spawn(task);
+        loki_task = Some(task);
 
         Some(layer)
     } else {
@@ -46,5 +52,5 @@ pub fn configure(loki: Option<LokiOptions>) -> Result<(), Box<dyn Error>> {
 
     registry().with(log_layer).with(loki_layer).try_init()?;
 
-    Ok(())
+    Ok(Logging::new(loki_task))
 }
