@@ -40,12 +40,11 @@ pub fn configure(loki: Option<LokiOptions>) -> Result<Logging, Box<dyn Error>> {
             builder = builder.extra_field(&k, &v)?;
         }
 
-        let (layer, task) = builder
-            .build_url(Url::parse(&loki.url)?)?;
+        let (layer, task) = builder.build_url(Url::parse(&loki.url)?)?;
 
         loki_task = Some(task);
 
-        Some(layer)
+        Some(layer.with_filter(EnvFilter::from_default_env()))
     } else {
         None
     };
